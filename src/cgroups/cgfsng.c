@@ -615,6 +615,24 @@ static int cgfsng_get_memory_swap_max(struct cgroup_ops *ops,
 	return cgfsng_get_memory(ops, cgroup, "memory.swap.max", value);
 }
 
+static int cgfsng_get_memory_zswap_current(struct cgroup_ops *ops,
+				      const char *cgroup, char **value)
+{
+	return cgfsng_get_memory(ops, cgroup, "memory.zswap.current", value);
+}
+
+static int cgfsng_get_memory_zswap_max(struct cgroup_ops *ops,
+				      const char *cgroup, char **value)
+{
+	return cgfsng_get_memory(ops, cgroup, "memory.zswap.max", value);
+}
+
+static int cgfsng_get_memory_zswap_writeback(struct cgroup_ops *ops,
+				      const char *cgroup, char **value)
+{
+	return cgfsng_get_memory(ops, cgroup, "memory.zswap.writeback", value);
+}
+
 static int cgfsng_get_memory_slabinfo_fd(struct cgroup_ops *ops, const char *cgroup)
 {
 	__do_free char *path = NULL;
@@ -1108,6 +1126,9 @@ struct cgroup_ops *cgfsng_ops_init(void)
 	cgfsng_ops->get_memory_swap_max = cgfsng_get_memory_swap_max;
 	cgfsng_ops->get_memory_current = cgfsng_get_memory_current;
 	cgfsng_ops->get_memory_swap_current = cgfsng_get_memory_swap_current;
+	cgfsng_ops->get_memory_zswap_max = cgfsng_get_memory_zswap_max;
+	cgfsng_ops->get_memory_zswap_current = cgfsng_get_memory_zswap_current;
+	cgfsng_ops->get_memory_zswap_writeback = cgfsng_get_memory_zswap_writeback;
 	cgfsng_ops->get_memory_slabinfo_fd = cgfsng_get_memory_slabinfo_fd;
 	cgfsng_ops->can_use_swap = cgfsng_can_use_swap;
 
