@@ -66,6 +66,7 @@ struct memory_stat {
 	uint64_t slab;
 	uint64_t slab_reclaimable;
 	uint64_t slab_unreclaimable;
+	uint64_t zswapped;
 };
 
 static off_t get_procfile_size(const char *path)
@@ -498,6 +499,20 @@ static void get_swap_info(const char *cgroup, uint64_t memlimit,
 	ret = cgroup_ops->get_memory_swappiness(cgroup_ops, cgroup, &memswpriority_str);
 	if (ret >= 0)
 		safe_uint64(memswpriority_str, memswpriority, 10);
+}
+
+static void get_zswap_info(const char *cgroup, uint64_t *zswap)
+{
+	__do_free char *zswap_str = NULL;
+	uint64_t memzswap = 0;
+	int ret;
+
+	ret = cgroup_ops->get_memory_zswap_current(cgroup_ops, cgroup, &zswap_str);
+	if (ret < 0 || safe_uint64(zswap_str, &memzswap, 10) < 0)
+		return;
+
+	if (liblxcfs_memory_is_cgroupv2())
+		*zswap = memzswap / 1024;
 }
 
 static int proc_swaps_read(char *buf, size_t size, off_t offset,
@@ -1377,6 +1392,8 @@ static bool cgroup_parse_memory_stat(const char *cgroup, struct memory_stat *mst
 			sscanf(line, "slab_reclaimable %" PRIu64, &(mstat->slab_reclaimable));
 		} else if (unified && startswith(line, "slab_unreclaimable")) {
 			sscanf(line, "slab_unreclaimable %" PRIu64, &(mstat->slab_unreclaimable));
+		} else if (unified && startswith(line, "zswapped")) {
+			sscanf(line, "zswapped %" PRIu64, &(mstat->zswapped));
 		}
 	}
 
@@ -1392,9 +1409,11 @@ static int proc_meminfo_read(char *buf, size_t size, off_t offset,
 	__do_fclose FILE *f = NULL;
 	struct fuse_context *fc = fuse_get_context();
 	bool wants_swap = lxcfs_has_opt(fuse_get_context()->private_data, LXCFS_SWAP_ON);
+	bool wants_zswap = lxcfs_has_opt(fuse_get_context()->private_data, LXCFS_ZSWAP_ON);
 	struct file_info *d = INTTYPE_TO_PTR(fi->fh);
 	uint64_t memlimit = 0, memusage = 0,
 		 hosttotal = 0, swfree = 0, swusage = 0, swtotal = 0,
+		 zswap = 0,
 		 memswpriority = 1;
 	struct memory_stat mstat = {};
 	size_t linelen = 0, total_len = 0;
@@ -1448,6 +1467,8 @@ static int proc_meminfo_read(char *buf, size_t size, off_t offset,
 	 */
 	if (wants_swap)
 		get_swap_info(cgroup, memlimit, memusage, &swtotal, &swusage, &memswpriority);
+	if (wants_zswap)
+		get_zswap_info(cgroup, &zswap);
 
 	f = fopen_cached("/proc/meminfo", "re", &fopen_cache);
 	if (!f)
@@ -1507,6 +1528,12 @@ static int proc_meminfo_read(char *buf, size_t size, off_t offset,
 			}
 
 			snprintf(lbuf, 100, "SwapFree:       %8" PRIu64 " kB\n", swfree);
+			printme = lbuf;
+		} else if (startswith(line, "Zswap:")) {
+			snprintf(lbuf, 100, "Zswap:         %8" PRIu64 " kB\n", zswap);
+			printme = lbuf;
+		} else if (startswith(line, "Zswapped:")) {
+			snprintf(lbuf, 100, "Zswapped:       %8" PRIu64 " kB\n", wants_zswap ? mstat.zswapped / 1024 : 0);
 			printme = lbuf;
 		} else if (startswith(line, "Slab:")) {
 			snprintf(lbuf, 100, "Slab:           %8" PRIu64 " kB\n", mstat.slab / 1024);
