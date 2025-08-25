@@ -133,7 +133,8 @@ typedef enum lxcfs_opt_t {
 	LXCFS_SWAP_ON	= 0,
 	LXCFS_PIDFD_ON	= 1,
 	LXCFS_CFS_ON	= 2,
-	LXCFS_OPTS_MAX	= LXCFS_CFS_ON,
+	LXCFS_ZSWAP_ON = 3,
+	LXCFS_OPTS_MAX	= LXCFS_ZSWAP_ON,
 } lxcfs_opt_t;
 
 
@@ -142,6 +143,7 @@ extern void prune_init_slice(char *cg);
 extern bool supports_pidfd(void);
 extern bool liblxcfs_functional(void);
 extern bool liblxcfs_can_use_swap(void);
+extern bool liblxcfs_can_use_zswap(void);
 extern bool liblxcfs_memory_is_cgroupv2(void);
 extern bool liblxcfs_can_use_sys_cpu(void);
 extern bool liblxcfs_has_versioned_opts(void);
@@ -164,6 +166,8 @@ static inline bool lxcfs_has_opt(struct lxcfs_opts *opts, lxcfs_opt_t opt)
 		return opts->use_pidfd;
 	case LXCFS_CFS_ON:
 		return opts->use_cfs;
+	case LXCFS_ZSWAP_ON:
+		return liblxcfs_can_use_zswap();
 	}
 
 	return false;
