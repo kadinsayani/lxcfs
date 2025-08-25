@@ -149,6 +149,7 @@ struct cgroup_ops {
 	int (*get_memory_slabinfo_fd)(struct cgroup_ops *ops,
 				      const char *cgroup);
 	bool (*can_use_swap)(struct cgroup_ops *ops, const char *cgroup);
+	bool (*can_use_zswap)(struct cgroup_ops *ops, const char *cgroup);
 	int (*get_memory_zswap_max)(struct cgroup_ops *ops, const char *cgroup,
 				char **value);
 	int (*get_memory_zswap_current)(struct cgroup_ops *ops, const char *cgroup,

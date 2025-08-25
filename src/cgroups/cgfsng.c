@@ -722,6 +722,26 @@ static bool cgfsng_can_use_swap(struct cgroup_ops *ops, const char *cgroup)
 	return ret;
 }
 
+static bool cgfsng_can_use_zswap(struct cgroup_ops *ops, const char *cgroup)
+{
+	__do_free char *cgroup_rel = NULL, *junk_value = NULL;
+	const char *file;
+	struct hierarchy *h;
+
+	h = ops->get_hierarchy(ops, "memory");
+	if (!h)
+		return false;
+
+	cgroup_rel = must_make_path_relative(cgroup, NULL);
+
+	if (!is_unified_hierarchy(h))
+		return false;
+
+	file = "memory.zswap.writeback";
+
+	return cgroup_walkup_to_root(ops->cgroup2_root_fd, h->fd, cgroup_rel, file, &junk_value) == 0;
+}
+
 static int cgfsng_get_memory_stats(struct cgroup_ops *ops, const char *cgroup,
 				   char **value)
 {
@@ -1131,6 +1151,7 @@ struct cgroup_ops *cgfsng_ops_init(void)
 	cgfsng_ops->get_memory_zswap_writeback = cgfsng_get_memory_zswap_writeback;
 	cgfsng_ops->get_memory_slabinfo_fd = cgfsng_get_memory_slabinfo_fd;
 	cgfsng_ops->can_use_swap = cgfsng_can_use_swap;
+	cgfsng_ops->can_use_zswap = cgfsng_can_use_zswap;
 
 	/* cpuset */
 	cgfsng_ops->get_cpuset_cpus = cgfsng_get_cpuset_cpus;
